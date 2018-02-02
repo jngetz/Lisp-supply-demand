@@ -1,5 +1,5 @@
 ;;Load main program
-(load "fillOrder.el")
+(load "fillOrder")
 
 ;;Runs the program on the specific testcases
-(load "testcases.el")
+(load "testcases")

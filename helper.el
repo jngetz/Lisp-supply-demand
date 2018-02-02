@@ -27,6 +27,8 @@
 ;;PRE:  inventory type
 ;;POST: RV = sum of stock in inventory type
 (defun sumStock (inventory)
-  (+ (sumStock (cdr inventory)) (nth 2 (car inventory))
-     ;;Element of a warehouse at position 2 is CS
+  (cond ((equal inventory nil) 0)
+	(t (+ (sumStock (cdr inventory)) (nth 2 (car inventory))))
+	   ;;Element of a warehouse at position 2 is CS
+  )
 )
