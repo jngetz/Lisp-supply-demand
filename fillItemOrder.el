@@ -1,4 +1,4 @@
-(load "helper.el")
+(load-file "helper.el")
 
 ;;PRE:  inventory as inventory type
 ;;      item_demand is a pair (IID R) where R is the number of items requested
@@ -15,9 +15,16 @@
 )
 
 ;;PRE:  inventory type and a warehouse which equals (IID WID CS MS CPI PPI)
-;;POST: RV = inventory type where warehouse is in inventory
+;;      inventory does not contain a copy of warehouse
+;;POST: RV = inventory type where warehouse is in inventory and inventory is
+;;      sorted in descending order of net profit on next sale
 (defun addWarehouse (inventory warehouse)
   ;; pass
+  (cond
+    ((equal inventory nil) (append inventory (list warehouse)))
+    ((> (calcNetProfit warehouse) (calcNetProfit (car inventory))) (append (list warehouse) inventory))
+    (t (append (list (car inventory)) (addWarehouse (cdr inventory) warehouse)))
+  )
 )
 
 ;;PRE:  inventory type and R, the number of items requested
