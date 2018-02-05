@@ -42,7 +42,7 @@
 ;;PRE:  inventory type and request, the number of items requested
 ;;POST: RV = final output type
 (defun shipStock (inventory request)
-  (cond ((equal request 0) (list (caar inventory) nil 0 t))
+  (cond ((equal request 0) (list (list (list (caar inventory) nil 0 t)) nil))
 	(t (mergeStock (shipStock (addWarehouse (cdr inventory) (updateWarehouse
 						(car inventory) request))
 		       ;;Pass inventory with first warehouse adjusted and moved
@@ -77,12 +77,12 @@
 	      ;;Item is always supplied if we get into this function
 	      ) )
 	;;item shipment information
-	((cond ((= (nth 2 warehouse) (nth 3 warehouse))
-		(append (cdr further_shipments) (list (cadr warehouse)
+	(cond ((= (nth 2 warehouse) (nth 3 warehouse))
+		(append (car (cdr further_shipments)) (list (cadr warehouse)
 						      (list (car warehouse)))))
 	       ;;If MS == CS, then this shipment will put us below MS
 	       ;;so we add a warning for this warehouse to warnings
-	       (t (cdr further_shipments))))
+	       (t (cdr further_shipments)))
 	       ;;Else, no additional warning necessary, just existing warnings
 	;;warehouse warnings
 	)
