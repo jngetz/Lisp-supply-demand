@@ -1,4 +1,4 @@
-(load "fillItemOrder")
+(load-file "fillItemOrder.el")
 
 ;;PRE:  inventory as inventory type and demand as a list of pairs (IID R) where
 ;;      R is the number of items requested
@@ -28,8 +28,12 @@
 (defun merge (log purchase)
   (append (list (mergeInventory (car log) (car purchase)))
 	  ;;car FOT gives inventory types
-	  (list (mergeWarnings (car (cdr log)) (car (cdr purchase))))
-          ;;car cdr FOT gives the warnings for the items below minimum stock
+	  (cond ((equal (cdr purchase) nil) (cdr log))
+		((equal (cdr log) nil) (cdr purchase))
+		(t (list (mergeWarnings (car (cdr log)) (car (cdr purchase)))))
+	  )	
+	  ;;car cdr FOT gives the warnings for the items below
+	  ;;minimum stock
   )
 )
 
@@ -44,13 +48,16 @@
 ;;POST: RV = updated_warnings is the union of updated warnings from warnings,
 ;;      and the warnings found exlusively in warnings or update
 (defun mergeWarnings (warnings update)
-  (append (list (getWarningsNotIn warnings update))
-	  (updateWarnings warnings update))
+  (cond ((equal update nil) warnings)
+	((equal warnings nil) update)
+	(t (append (list (getWarningsNotIn warnings update))
+		   (updateWarnings warnings update)))
+  )
 )
 
 ;;PRE:  warnings and update are both lists of warning types
 ;;POST: RV = updated_warnings is the list of warning types that are contained in
-;;      both warnings and update with the new information
+;;      warnings updated to info in update
 (defun updateWarnings (warnings update)
   (cond ((equal warnings nil) nil)
 	(t (append (list (mergeWarning (car warnings) update))

@@ -5,8 +5,9 @@
 ;;POST: RV = final output type
 (defun fillItemOrder (inventory item_demand)
   (cond
-    ((< (sumStock (getWarehouses (car item_demand))) (car (last item_demand))) '((((car item_demand) () 0 nil)) ()))
-    (t (shipStock (getWarehouses (car item_demand)) (car (last item_demand))))
+    ((< (sumStock (getWarehouses (car item_demand) inventory)) (car (last item_demand))) '((((car item_demand) () 0 nil)) ()))
+    (t (shipStock (getWarehouses (car item_demand) inventory)
+		  (car (last item_demand))))
   )
 )
 
@@ -30,10 +31,12 @@
 ;;PRE:  inventory type and a warehouse which equals (IID WID CS MS CPI PPI)
 ;;      inventory does not contain a copy of warehouse
 ;;POST: RV = inventory type where warehouse is in inventory and inventory is
-;;      sorted in descending order of net profit on next sale
+;;      sorted in descending order of net profit on next sale if CS > 0
+;;      else return inventory
 (defun addWarehouse (inventory warehouse)
   (cond
     ((equal inventory nil) (append inventory (list warehouse)))
+    ((= (nth 2 warehouse) 0) inventory)
     ((> (calcNetProfit warehouse) (calcNetProfit (car inventory))) (append (list warehouse) inventory))
     (t (append (list (car inventory)) (addWarehouse (cdr inventory) warehouse)))
   )
@@ -42,7 +45,7 @@
 ;;PRE:  inventory type and request, the number of items requested
 ;;POST: RV = final output type
 (defun shipStock (inventory request)
-  (cond ((equal request 0) (list (list (list (caar inventory) nil 0 t)) nil))
+  (cond ((<= request 0) (list (list (list (caar inventory) nil 0 t)) nil))
 	(t (mergeStock (shipStock (addWarehouse (cdr inventory) (updateWarehouse
 						(car inventory) request))
 		       ;;Pass inventory with first warehouse adjusted and moved
@@ -78,11 +81,13 @@
 	      ) )
 	;;item shipment information
 	(cond ((= (nth 2 warehouse) (nth 3 warehouse))
-		(append (car (cdr further_shipments)) (list (cadr warehouse)
-						      (list (car warehouse)))))
+	       (append (car (cdr further_shipments))
+		       ;;First list is all existing warnings
+		       (list (list (cadr warehouse) (list (car warehouse))))))
+	               ;;New warnings for warehouse
 	       ;;If MS == CS, then this shipment will put us below MS
 	       ;;so we add a warning for this warehouse to warnings
-	       (t (cdr further_shipments)))
+	       (t (car (cdr further_shipments))))
 	       ;;Else, no additional warning necessary, just existing warnings
 	;;warehouse warnings
 	)
@@ -118,10 +123,10 @@
 ;;      iff CS <= MS, otherwise CS updated to CS - min(CS-MS, N)
 (defun updateWarehouse (warehouse N)
   (cond
-    ((> (nth 2 warehouse) (nth 3 warehouse)) (append (list (nth 0 warehouse) (nth 1 warehouse) (- (nth 2 warehouse) (min (- (nth 2 warehouse) (nth 3 warehouse)) N))) (nthcdr 3 warehouse)))
-    (t (append (list (nth 0 warehouse) (nth 1 warehouse) (- (nth 2 warehouse) (min (nth 2 warehouse) N))) (nthcdr 3 warehouse)))
+   ((> (nth 2 warehouse) (nth 3 warehouse)) (append (list (nth 0 warehouse) (nth 1 warehouse) (- (nth 2 warehouse) (min (- (nth 2 warehouse) (nth 3 warehouse)) N))) (nthcdr 3 warehouse)))
+   (t (append (list (nth 0 warehouse) (nth 1 warehouse) (- (nth 2 warehouse) (min (nth 2 warehouse) N))) (nthcdr 3 warehouse)))
+   )
   )
-)
 
 ;;PRE:  warehouse we are extracting from and the current N
 ;;POST: the number of items taken from the warehouse
