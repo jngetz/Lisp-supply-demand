@@ -24,3 +24,5 @@ final output type = (((IID ((WID N WP) ...) TP S) ...) ((WID (IID ...))...))
 inventory type = ((IID WID CS MS CPI PPI) ...)
 
 warning type = (WID (IID ...))
+
+shipment type = (WID N WP)

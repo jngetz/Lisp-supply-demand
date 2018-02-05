@@ -42,16 +42,75 @@
 ;;PRE:  inventory type and request, the number of items requested
 ;;POST: RV = final output type
 (defun shipStock (inventory request)
-  (shipStockHelper inventory request '(() ())) ; empty f.o.t. passed in
+  (cond ((equal request 0) (list (caar inventory) nil 0 t))
+	(t (mergeStock (shipStock (addWarehouse (cdr inventory) (updateWarehouse
+						(car inventory) request))
+		       ;;Pass inventory with first warehouse adjusted and moved
+		       ;;to sorted order based on new profit margin
+		       (- request (supplyFrom (car inventory) request)))
+		       ;;Pass remaining request
+		       (car inventory) (supplyFrom (car inventory) request)
+		       ;;Pass warehouse and size of shipment to mergeStock
+		       (calcNetProfit (car inventory))
+		       ;;Pass profit per item
+		       )  
+	   ;;Pass results of rest of shipment and this shipment (wid and N)
+	)
+  )
 )
 
-;;PRE:  inventory type, number of items requested, basis is final output type list to build into
-;;POST: RV = final output type
-(defun shipStockHelper (inventory request basis)
-  (cond
-    ((equal request 0) basis) ; when the request is filled return the built basis list
-    (t (shipStockHelper (addWarehouse (cdr inventory) (updateWarehouse (car inventory) N)) (- N (supplyFrom (car inventory) N)) (list (append ## (car basis)) (append ## (last basis))))) ;TODO: finish the recursive call
-  )
+;;PRE:  further_shipments is final output type
+;;      warehouse is the warehouse we are shipping from
+;;      size is the number of items in this shipment
+;;      profit is the net profit on an item in this shipment
+;;POST: RV = final output type 
+(defun mergeStock (further_shipments warehouse size profit)
+  (list (list (list (car warehouse)
+	      ;;iid
+	      (recordShipment (cadr (caar further_shipments)) warehouse size
+				    profit)
+	      ;;list of shipments
+	      (+ (nth 2 (caar further_shipments))
+		 (* profit size))
+	      ;;total profit for this item thus far
+	      t
+	      ;;Item is always supplied if we get into this function
+	      ) )
+	;;item shipment information
+	((cond ((= (nth 2 warehouse) (nth 3 warehouse))
+		(append (cdr further_shipments) (list (cadr warehouse)
+						      (list (car warehouse)))))
+	       ;;If MS == CS, then this shipment will put us below MS
+	       ;;so we add a warning for this warehouse to warnings
+	       (t (cdr further_shipments))))
+	       ;;Else, no additional warning necessary, just existing warnings
+	;;warehouse warnings
+	)
+)
+
+;;PRE:  shipments is a list of shipment types
+;;      warehouse is the warehouse we are shipping from
+;;      size is the number of items in this shipment
+;;      profit is the net profit on an item in this shipment
+;;POST: RV = a list of shipment types with the current shipment included
+(defun recordShipment (shipments warehouse size profit)
+  (cond ((equal shipments nil) (list (list (cadr warehouse) size
+				   (* profit size))))
+	((equal (cadr warehouse) (caar shipments))
+	 ;;If wid is the same for this shipment and another shipment
+	 (append (list (list (cadr warehouse) (+ (nth 1 (car shipments)) size)
+		       ;;wid remains the same, add size to shipment size so far
+		       (+ (nth 2 (car shipments)) (* profit size))
+		       ;;New warehouse profit
+		       ))
+		 (cdr shipments))
+	 ;;Append updated shipment info from this warehouse to the
+	 ;;remainder of the shipments
+	 )
+	 (t (append  (list (car shipments))
+		     (recordShipment (cdr shipments) warehouse size profit)))
+	 ;;Not same wid, shipments isn't nil
+  )	 
 )
 
 ;;PRE:  the warehouse needing to be updated and the current N being worked with
