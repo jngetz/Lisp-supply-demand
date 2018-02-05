@@ -26,9 +26,9 @@
 ;;POST: RV = updated_log is a final output type that contains log and changes
 ;;      from purchase
 (defun merge (log purchase)
-  (append (mergeInventory (car log) (car purchase))
+  (append (list (mergeInventory (car log) (car purchase)))
 	  ;;car FOT gives inventory types
-	  (mergeWarnings (car (cdr log)) (car (cdr purchase))))
+	  (list (mergeWarnings (car (cdr log)) (car (cdr purchase))))
           ;;car cdr FOT gives the warnings for the items below minimum stock
   )
 )
@@ -41,28 +41,38 @@
 )
 
 ;;PRE:  warnings and update are both lists of warning types
-;;POST: RV = updated_warnings is a list of warning types that contains the
-;;      union of warnings and update
+;;POST: RV = updated_warnings is the union of updated warnings from warnings,
+;;      and the warnings found exlusively in warnings or update
 (defun mergeWarnings (warnings update)
+  (append (list (getWarningsNotIn warnings update))
+	  (updateWarnings warnings update))
+)
+
+;;PRE:  warnings and update are both lists of warning types
+;;POST: RV = updated_warnings is the list of warning types that are contained in
+;;      both warnings and update with the new information
+(defun updateWarnings (warnings update)
   (cond ((equal warnings nil) nil)
 	(t (append (list (mergeWarning (car warnings) update))
-		   (mergeWarnings (cdr warnings update) update))
+		   (updateWarnings (cdr warnings) update))
 	)
   )
 )
 
 ;;PRE:  warnings and update are both lists of warning types
-;;POST: RV = updated_warnings where updated_warnings is warnings and
-;;      the warning type objects from update for wid not in warnings
+;;POST: RV = updates where updates is the list of warning type objects from
+;;      update where wid not in warnings
 (defun getWarningsNotIn (warnings update)
-  (cond ((equal update nil) nil)
+  (cond ((equal update nil) nil) ;;nil is a list
 	((equal (findWarning (caar update) warnings) nil)
 	 ;;If wid from update isn't in warnings, add it to warnings and
 	 ;;all further updates that aren't in warnings
-	 (append (addWarnings warnings (cdr update))
-		 (list (car update)))
-	 ;; Append the update
-	 ))
+	 (append (getWarningsNotIn warnings (cdr update))
+		 (car update)))
+	;; Append the update to the rest of the new warehouses
+	(t (getWarningsNotIn warnings (cdr update)))
+	;;If  wid is in warnings, then we don't have to update anything
+	)
 )
 
 ;;PRE:  warning is a warning type
@@ -70,9 +80,9 @@
 ;;POST: RV = updated_warning where updated_warning is a warning type containing
 ;;      the union of warning and any update where wid is the same as warning
 (defun mergeWarning (warning update)
-  (list (car warning) (append (cdr warning)
+  (list (car warning) (append (cadr warning)
 			      ;;(cdr warning) is a list of iids
-			      (cdr (findWarning (car warning) update)) ) )
+			      (cadr (findWarning (car warning) update)) ) )
                               ;;gets the list of iids from update
 )
 
@@ -81,7 +91,7 @@
 ;;      RV = warning type for the warehouse with wid
 (defun findWarning (wid warnings)
   (cond ((equal warnings nil) nil)
-	(equal wid (caar warnings)) (car warnings))
+	((equal wid (caar warnings)) (car warnings))
 	(t (findWarning wid (cdr warnings)))
   )
 )
